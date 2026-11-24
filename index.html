@@ -27,10 +27,13 @@
     font: bold 18px monospace; touch-action: none; padding: 0; }
   #touch button.big { width: 74px; height: 74px; font-size: 22px; }
   #touch button:active, #touch button.down { background: rgba(255,210,63,.45); }
-  #b-up    { left: 58px;  bottom: 104px; }
-  #b-left  { left: 12px;  bottom: 56px; }
-  #b-right { left: 104px; bottom: 56px; }
-  #b-down  { left: 58px;  bottom: 8px; }
+  /* analógico flutuante: aparece onde o polegar pousa (lado esquerdo) e a base segue o dedo */
+  #stick-zone { position: absolute; left: 0; top: 0; bottom: 0; width: 46%; pointer-events: auto; touch-action: none; }
+  #stick-base { position: absolute; width: 112px; height: 112px; margin: -56px 0 0 -56px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.35); background: rgba(20,24,48,.3); pointer-events: none; opacity: .45; transition: opacity .15s; }
+  #stick-base.on { opacity: 1; transition: none; }
+  #stick-knob { position: absolute; left: 50%; top: 50%; width: 50px; height: 50px; margin: -27px 0 0 -27px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.55); background: rgba(255,210,63,.4); }
   #b-jump  { right: 14px; bottom: 28px; }
   #b-turbo { right: 100px; bottom: 12px; }
   #b-spin  { right: 96px; bottom: 90px; }
@@ -50,10 +53,7 @@
 <div id="rodar"><b>↻</b>RODA O TELEMÓVEL</div>
 
 <div id="touch">
-  <button id="b-up" data-a="up">▲</button>
-  <button id="b-left" data-a="left">◀</button>
-  <button id="b-right" data-a="right">▶</button>
-  <button id="b-down" data-a="down">▼</button>
+  <div id="stick-zone"><div id="stick-base"><div id="stick-knob"></div></div></div>
   <button id="b-jump" class="big" data-a="jump">Z</button>
   <button id="b-turbo" data-a="turbo">X</button>
   <button id="b-spin" data-a="spin">C</button>

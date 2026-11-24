@@ -22,13 +22,14 @@ class Player {
       trunkX: 0, trunkCool: 0, wallSlideT: 0, dropT: 0, super: false, superT: 0, spinCharge: 0, dashing: false,
       crouch: false, lookUp: false, lookT: 0, liana: null, theta: 0, omega: 0, grip: 0, swingCool: 0, plat: null,
       air: PHYS.airMax, airWarn: 0,
+      inDeep: false, swimming: false, dashT: 0, dashCool: 0, dashDX: 1, dashDY: 0, strokeT: 0,   // água funda: nadar e o dash
     });
   }
   get cx() { return this.x + Math.sin(this.angle) * PLAYER_H / 2; }
   get cy() { return this.y - Math.cos(this.angle) * PLAYER_H / 2; }
   get ball() { return this.state === 'normal' && !this.onGround && this.jumping && !this.glide && this.hurtT <= 0; }
   get attacking() {
-    return this.super || this.spinT > 0 || this.ball || this.rolling || this.state === 'loop' ||
+    return this.super || this.spinT > 0 || this.dashT > 0 || this.ball || this.rolling || this.state === 'loop' ||
       (this.turbo && this.onGround && Math.abs(this.vx) > 330);
   }
 
@@ -52,6 +53,9 @@ class Player {
     if (this.ctrlLock > 0) this.ctrlLock -= dt;
     if (this.spinCool > 0) this.spinCool -= dt;
     if (this.spinT > 0) this.spinT -= dt;
+    if (this.dashT > 0) this.dashT -= dt;
+    if (this.dashCool > 0) this.dashCool -= dt;
+    if (this.strokeT > 0) this.strokeT -= dt;
     if (this.coyote > 0) this.coyote -= dt;
     this.jumpBuf = inp.jumpPressed ? 0.12 : Math.max(0, this.jumpBuf - dt);
     const d = this.ctrlLock > 0 || this.hurtT > 0 ? 0 : (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
@@ -66,8 +70,22 @@ class Player {
     this.energy = this.turbo ? Math.max(0, this.energy - PHYS.turboDrain * dt)
       : Math.min(100, this.energy + PHYS.turboRegen * dt);
 
+    // --- dash debaixo de água (C): um impulso na direcção das setas; ataca e ganha velocidade ---
+    if (inp.spinPressed && this.inDeep && this.state === 'normal') {
+      if (this.dashCool <= 0 && this.hurtT <= 0) {
+        let dx = (inp.right ? 1 : 0) - (inp.left ? 1 : 0), dy = (inp.down ? 1 : 0) - (inp.up ? 1 : 0);
+        if (!dx && !dy) dx = this.facing;
+        const n = Math.hypot(dx, dy);
+        Object.assign(this, { dashDX: dx / n, dashDY: dy / n, dashT: PHYS.swimDashTime, dashCool: PHYS.swimDashCool, glide: false, glideArmed: false, jumping: false, rolling: false });
+        if (dx) this.facing = Math.sign(dx);
+        if (dy < 0 || !this.onGround) this.onGround = false;
+        Sound.sfx('dash'); Sound.sfx('stroke');
+        for (let i = 0; i < 8; i++) game.parts.push(new Particle({ kind: 'bubble', x: this.x - this.dashDX * 10 + (Math.random() - 0.5) * 8, y: this.y - 11 - this.dashDY * 10 + (Math.random() - 0.5) * 8,
+          vx: -this.dashDX * (40 + Math.random() * 60), vy: -30 - Math.random() * 30, life: 0.8, size: 1 + (i % 2) }));
+      }
+    }
     // --- pião de cauda ---
-    if (inp.spinPressed && this.spinCool <= 0 && this.state !== 'climb' && this.state !== 'trunk' && this.hurtT <= 0) {
+    else if (inp.spinPressed && this.spinCool <= 0 && this.state !== 'climb' && this.state !== 'trunk' && this.hurtT <= 0) {
       this.spinT = PHYS.spinTime; this.spinCool = PHYS.spinCool;
       Sound.sfx('spin');
       if (this.state === 'normal' && !this.onGround && !this.airSpinUsed) {

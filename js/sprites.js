@@ -76,6 +76,7 @@ Object.assign(Gfx, {
     ctx.scale(p.facing, 1);
     if (p.state === 'dead' || p.hurtT > 0) this.sqHurt(ctx, p);
     else if (p.state === 'surf') { this.surfboard(ctx); this.sqCrouch(ctx, p); }
+    else if (p.swimming && p.state === 'normal') this.sqSwim(ctx, p);
     else if (p.state === 'climb' || p.state === 'trunk' || p.state === 'swing' || p.state === 'zip' || (p.wallSlideT > 0 && !p.onGround)) this.sqClimb(ctx, p);
     else if (p.glide) this.sqGlide(ctx, p);
     else if (p.ball || p.rolling || p.state === 'loop' || p.spinCharge > 0) this.sqBall(ctx, p);
@@ -184,6 +185,55 @@ Object.assign(Gfx, {
     ell(ctx, 0, -1.5, 7, 3.4, C.FUR);
     ell(ctx, 0.5, 0.4, 5, 1.6, C.BELLY);
     this.shoe(ctx, -8, 2.5 + fl); this.shoe(ctx, 10, 1.5 + fl);
+    // cabeça com os óculos postos
+    poly(ctx, [[6, -5], [5, -11], [8.5, -6]], C.FUR);
+    ctx.fillStyle = C.FUR_D; ctx.fillRect(4.5, -13, 2, 3);
+    ell(ctx, 8, -3, 4.4, 4, C.FUR);
+    ell(ctx, 11, -2.2, 2.6, 2, C.BELLY);
+    ell(ctx, 13.2, -2.8, 1.3, 1.1, C.EYE);
+    ctx.fillStyle = C.GOG_D; ctx.fillRect(3.5, -5.2, 8, 1.6);
+    ell(ctx, 9.6, -4.4, 2.1, 1.9, C.GOG); ell(ctx, 9.9, -4.6, 1.2, 1, C.LENS);
+    ctx.restore();
+  },
+  // a nadar (água funda): deitada, óculos postos, pernas a bater, cauda a ondular; com a botija do Leão às costas.
+  // No dash fica esticada como uma seta, na direcção do impulso.
+  sqSwim(ctx, p) {
+    const dash = p.dashT > 0, t = p.anim, kick = Math.sin(t * (dash ? 34 : 11)), w = Math.sin(t * (dash ? 16 : 7));
+    const str = p.strokeT > 0 ? p.strokeT / 0.35 : 0;
+    const tilt = dash ? Math.atan2(p.dashDY, Math.abs(p.dashDX) || 0.0001) : clamp(p.vy / 600, -0.35, 0.35);
+    ctx.save(); ctx.translate(0, -10); ctx.rotate(tilt);
+    if (dash) {                                                       // riscos de água atrás
+      ctx.fillStyle = 'rgba(220,245,255,0.75)';
+      for (let k = 0; k < 4; k++) ctx.fillRect(-30 - k * 5 + ((t * 120) % 5), -4 + k * 2.5, 9 - k, 1);
+    }
+    tail(ctx, dash ? [[-7, -1], [-13, -1.5 + w * 0.4], [-19, -1.5 + w * 0.8], [-25, -1]]
+      : [[-7, -1], [-12, -2.5 + w * 0.8], [-17, -3 + w * 1.8], [-22, -1.5 + w * 1.2]], [3, 4, 4.5, 3.4]);
+    // pernas a bater, para trás
+    ctx.strokeStyle = C.FUR_D; ctx.lineWidth = 3;
+    for (const s of [1, -1]) {
+      const fy = (dash ? 0.5 : 1) + s * kick * (dash ? 1 : 2.2);
+      ctx.beginPath(); ctx.moveTo(-4, 0.5); ctx.lineTo(-9, fy + 0.5); ctx.stroke();
+      this.shoe(ctx, -11, fy);
+    }
+    // botija de oxigénio às costas (depois do Leão)
+    if (typeof Game !== 'undefined' && Game.hasTank) {
+      ctx.fillStyle = '#b8861a'; ctx.fillRect(-7, -8.5, 11, 5);
+      ctx.fillStyle = '#e8b830'; ctx.fillRect(-7, -9, 11, 4); ell(ctx, -7, -7, 1.6, 2.4, '#e8b830'); ell(ctx, 4, -7, 1.6, 2.4, '#e8b830');
+      ctx.fillStyle = '#fff0a0'; ctx.fillRect(-6, -8.5, 9, 1);
+      ctx.fillStyle = '#4a7acf'; ctx.fillRect(-2.5, -9, 2, 4);
+      ctx.fillStyle = '#7a7e89'; ctx.fillRect(5, -8, 2, 2); ctx.fillRect(6, -10, 1, 2);       // válvula
+      ctx.strokeStyle = '#3a3e48'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(6.5, -10); ctx.quadraticCurveTo(10, -10, 10.5, -5); ctx.stroke();   // tubo até à boca
+    }
+    // corpo
+    ell(ctx, 0, -1.5, 7.5, 3.6, C.FUR);
+    ell(ctx, 0.5, 0.7, 5.5, 1.8, C.BELLY);
+    if (Game.hasTank) { ctx.fillStyle = '#3a3e48'; ctx.fillRect(-4, -4.5, 1, 6); ctx.fillRect(1, -4.5, 1, 6); }   // alças
+    // braços: esticados à frente no dash; a remar na braçada; a ondular devagar
+    if (dash) ell(ctx, 10, 0.5, 3.4, 1.2, C.FUR_D);
+    else {
+      const a = str > 0 ? lerp(-1.3, 1.4, 1 - str) : Math.sin(t * 5) * 0.4 + 0.3;
+      ctx.save(); ctx.translate(5, 0.5); ctx.rotate(a); ell(ctx, 2.5, 0, 3, 1.2, C.FUR_D); ctx.restore();
+    }
     // cabeça com os óculos postos
     poly(ctx, [[6, -5], [5, -11], [8.5, -6]], C.FUR);
     ctx.fillStyle = C.FUR_D; ctx.fillRect(4.5, -13, 2, 3);

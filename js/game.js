@@ -255,6 +255,7 @@ const Game = {
         p.quickT = 0;
       }
     }
+    p.inDeep = false; p.swimming = false;
     if (L.waterTiles.length && p.state === 'normal' && !this.ride) {            // oásis: a água trava e faz salpicos
       const inW = L.isWater(p.x, p.y - 6);
       if (inW !== !!p.wasInWater && Math.abs(p.vy) > 60) {
@@ -264,8 +265,14 @@ const Game = {
       }
       if (inW && L.deepWater) {                                           // Selva: nadar, mergulhar e ficar sem ar
         const under = L.isWater(p.x, p.y - 22);
-        if (I.jumpPressed && !p.onGround) { p.vy = under ? -200 : -330; p.jumping = false; p.glide = false; Sound.sfx('stroke'); this.parts.push(new Particle({ kind: 'bubble', x: p.x, y: p.y - 16, vy: -40, life: 1, size: 1 })); }
-        if (under && p.vy > 70) p.vy = 70;
+        p.inDeep = true; p.swimming = !p.onGround;
+        if (I.jumpPressed && !p.onGround && p.dashT <= 0) { p.vy = under ? -200 : -330; p.jumping = false; p.glide = false; p.strokeT = 0.35; Sound.sfx('stroke'); this.parts.push(new Particle({ kind: 'bubble', x: p.x, y: p.y - 16, vy: -40, life: 1, size: 1 })); }
+        if (p.dashT > 0) {                                                // dash: impulso que abranda até 3/4 (acaba à velocidade de nado)
+          const f = 0.75 + 0.25 * clamp(p.dashT / PHYS.swimDashTime, 0, 1);
+          p.vx = p.dashDX * PHYS.swimDashV * f; p.vy = p.dashDY * PHYS.swimDashV * f;
+          if (p.dashDY < 0 || p.dashDY > 0.3) p.onGround = false;
+          if (Math.random() < dt * 45) this.parts.push(new Particle({ kind: 'bubble', x: p.x - p.dashDX * 12, y: p.y - 11 - p.dashDY * 12, vx: -p.dashDX * 30, vy: -30, life: 0.6, size: 1 }));
+        } else if (under && p.vy > 70) p.vy = 70;
         if (L.current) p.vx += L.current * dt;
         for (const c of L.currents || []) if (p.x > c.x0 && p.x < c.x1 && p.y > c.y0 && p.y < c.y1 + 22) p.vx += (c.vx - p.vx) * Math.min(1, dt * 2.5);   // corrente forte (túnel de coral)
         if (under) {
@@ -275,7 +282,7 @@ const Game = {
           if (Math.random() < dt * 2) this.parts.push(new Particle({ kind: 'bubble', x: p.x + p.facing * 6, y: p.y - 20, vy: -35, life: 1.2, size: 1 }));
         } else { p.air = this.airMax(); p.airWarn = 99; }
       } else if (p.state === 'normal') { p.air = this.airMax(); p.airWarn = 99; }
-      if (inW) {
+      if (inW && p.dashT <= 0) {
         p.vx *= 1 - Math.min(1, 2.4 * dt); if (p.vy > 110) p.vy = 110;
         if (Math.random() < dt * 4) this.parts.push(new Particle({ x: p.x + (Math.random() - 0.5) * 10, y: p.y - 10, vy: -30, life: 0.6, size: 1, color: '#ffffff' }));
       }

@@ -62,6 +62,10 @@ const PHYS = {
 
   hurtInv: 2.0,
 
+  swimDashV: 330,     // dash debaixo de água (C): velocidade no arranque (abranda até 3/4)
+  swimDashTime: 0.3,
+  swimDashCool: 0.65,
+
   rollStart: 40,    // velocidade mínima para começar a rebolar (↓ a correr)
   rollMin: 45,      // abaixo disto levanta-se
   rollFriction: 170,     // a rebolar sem ↓ (ex.: à saída do looping)

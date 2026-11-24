@@ -191,7 +191,7 @@ class Puffer extends Enemy {
     if (this.puffT > 0) { this.puffT -= dt; this.puff = Math.min(1, this.puff + dt * 5); }
     else { this.puff = Math.max(0, this.puff - dt * 2); this.x += this.dir * 28 * dt; if (this.x < this.x0) this.dir = 1; if (this.x > this.x1) this.dir = -1; }
     this.y = this.y0 + Math.sin(this.t * 2) * 4;
-    if (this.puff > 0.5) { if (this.touching(game) && p.state !== 'dead') { if (p.spinT > 0 || p.super) this.kill(game); else p.hurt(game, this.x); } }
+    if (this.puff > 0.5) { if (this.touching(game) && p.state !== 'dead') { if (p.spinT > 0 || p.dashT > 0 || p.super) this.kill(game); else p.hurt(game, this.x); } }
     else this.checkPlayer(game);
   }
   draw(ctx) { Gfx.puffer(ctx, this); }
