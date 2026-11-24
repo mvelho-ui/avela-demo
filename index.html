@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Avelã Demo</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Avelã">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+  html, body { margin: 0; height: 100%; background: #0b0f1e; overflow: hidden;
+    touch-action: none; -webkit-user-select: none; user-select: none; }
+  #wrap { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+  canvas { image-rendering: pixelated; image-rendering: crisp-edges; background: #000;
+    box-shadow: 0 0 0 2px #1d2340, 0 10px 40px rgba(0,0,0,.6); }
+  /* botões de toque fora do entalhe e dos cantos arredondados (iPhone) */
+  #touch { position: fixed; top: env(safe-area-inset-top, 0px); right: env(safe-area-inset-right, 0px);
+    bottom: env(safe-area-inset-bottom, 0px); left: env(safe-area-inset-left, 0px); pointer-events: none; display: none; }
+  #touch.on { display: block; }
+  #touch button { pointer-events: auto; position: absolute; width: 60px; height: 60px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.35); background: rgba(20,24,48,.35); color: #fff;
+    font: bold 18px monospace; touch-action: none; padding: 0; }
+  #touch button.big { width: 74px; height: 74px; font-size: 22px; }
+  #touch button:active, #touch button.down { background: rgba(255,210,63,.45); }
+  #b-up    { left: 58px;  bottom: 104px; }
+  #b-left  { left: 12px;  bottom: 56px; }
+  #b-right { left: 104px; bottom: 56px; }
+  #b-down  { left: 58px;  bottom: 8px; }
+  #b-jump  { right: 14px; bottom: 28px; }
+  #b-turbo { right: 100px; bottom: 12px; }
+  #b-spin  { right: 96px; bottom: 90px; }
+  #b-throw { right: 20px; bottom: 112px; }
+  #b-super { right: 12px; top: 64px; width: 44px !important; height: 44px !important; font-size: 14px !important; }
+  #b-pause { right: 12px; top: 12px; width: 44px !important; height: 44px !important; font-size: 14px !important; }
+  /* telemóvel ao alto: pede para rodar */
+  #rodar { display: none; position: fixed; inset: 0; z-index: 9; background: #0b0f1e; color: #ffd23f;
+    font: bold 20px monospace; align-items: center; justify-content: center; text-align: center; flex-direction: column; gap: 14px; }
+  #rodar b { font-size: 54px; color: #7df9ff; }
+  @media (orientation: portrait) and (pointer: coarse) { #rodar { display: flex; } }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="game" width="384" height="216"></canvas></div>
+
+<div id="rodar"><b>↻</b>RODA O TELEMÓVEL</div>
+
+<div id="touch">
+  <button id="b-up" data-a="up">▲</button>
+  <button id="b-left" data-a="left">◀</button>
+  <button id="b-right" data-a="right">▶</button>
+  <button id="b-down" data-a="down">▼</button>
+  <button id="b-jump" class="big" data-a="jump">Z</button>
+  <button id="b-turbo" data-a="turbo">X</button>
+  <button id="b-spin" data-a="spin">C</button>
+  <button id="b-throw" data-a="throw">V</button>
+  <button id="b-super" data-a="super">S</button>
+  <button id="b-pause" data-a="pause">II</button>
+</div>
+
+<script>window.AVELA_DEMO = true;</script>
+<script src="js/config.js"></script>
+<script src="js/font.js"></script>
+<script src="js/input.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/music.js"></script>
+<script src="js/songs.js"></script>
+<script src="js/level.js"></script>
+<script src="js/leaves.js"></script>
+<script src="js/player.js"></script>
+<script src="js/entities.js"></script>
+<script src="js/render.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/jungle.js"></script>
+<script src="js/temple.js"></script>
+<script src="js/beach.js"></script>
+<script src="js/game.js"></script>
+<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');</script>
+</body>
+</html>
