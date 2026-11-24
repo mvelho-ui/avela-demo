@@ -360,7 +360,7 @@ Object.assign(Gfx, {
     if (x0 >= VIEW_W || y0 >= VIEW_H) return;
     ctx.fillStyle = 'rgba(30,130,215,0.24)'; ctx.fillRect(x0, y0, VIEW_W - x0, VIEW_H - y0);   // tudo o que está debaixo de água fica azul
     const k = clamp((cy + VIEW_H / 2 - L.seaY - 80) / 420, 0, 1);
-    if (k > 0) { ctx.fillStyle = `rgba(4,18,52,${(0.4 * k).toFixed(3)})`; ctx.fillRect(x0, y0, VIEW_W - x0, VIEW_H - y0); }
+    if (k > 0) { ctx.fillStyle = `rgba(4,18,52,${((L.seaDark ?? 0.4) * k).toFixed(3)})`; ctx.fillRect(x0, y0, VIEW_W - x0, VIEW_H - y0); }
   },
   // ---------------- fundo da praia e do mar ----------------
   beachBg(ctx, camX, camY, L, time) {
@@ -506,3 +506,123 @@ Gfx.deco = function (g, d) {
   }
   return _decoBeach.call(Gfx, g, d);
 };
+
+// =====================================================================
+//  RECIFE DE CORAL (5-2): peças feitas para o dash
+// =====================================================================
+// Anel de bolhas: atravessá-lo recarrega o dash logo (para encadear dashes) e dá uma bolota; volta 3 s depois.
+class BubbleRing extends Ent {
+  constructor(d) { super(d); this.r = 13; this.gone = 0; }
+  onRespawn() { this.gone = 0; }
+  update(dt, game) {
+    if (this.gone > 0) { this.gone -= dt; return; }
+    const p = game.player;
+    if (p.state === 'dead' || Math.hypot(p.cx - this.x, p.cy - this.y) > this.r + 6) return;
+    this.gone = 3; p.dashCool = 0; p.acorns++; p.score += 20;
+    Sound.sfx('ring');
+    for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; game.parts.push(new Particle({ kind: 'bubble', x: this.x + Math.cos(a) * this.r, y: this.y + Math.sin(a) * this.r, vx: Math.cos(a) * 60, vy: Math.sin(a) * 60 - 20, life: 0.6, size: 1 })); }
+  }
+  draw(ctx) { Gfx.bubbleRing(ctx, this); }
+}
+
+// Moreia: escondida num buraco da rocha (só se vêem os olhos); quando a Avelã passa à frente, salta para fora,
+// morde e recolhe. Só se vence quando está cá fora (dash, pião, bolota). dir: +1 olha para a direita, −1 para a esquerda.
+class Moray extends Enemy {
+  constructor(d) { super(d); this.dir = d.dir || 1; this.ext = 0; this.state = 'hide'; this.timer = 0.5 + Math.random(); this.stays = true; this.reach = d.reach || 58; }
+  get hittable() { return this.ext > 0.35; }
+  box() { return { x: this.x + this.dir * (6 + this.ext * this.reach), y: this.y, hw: 8, hh: 6 }; }
+  update(dt, game) {
+    this.t += dt;
+    if (this.dead) return this.updateDead(dt);
+    const p = game.player, dx = (p.x - this.x) * this.dir;
+    this.timer -= dt;
+    if (this.state === 'hide') {
+      this.ext = Math.max(0, this.ext - dt * 3);
+      if (this.timer <= 0 && p.state !== 'dead' && dx > 0 && dx < this.reach + 40 && Math.abs(p.cy - this.y) < 26) { this.state = 'out'; this.timer = 0.18; Sound.sfx('chomp'); }
+    } else if (this.state === 'out') {
+      this.ext = Math.min(1, this.ext + dt / 0.18);
+      if (this.timer <= 0) { this.state = 'hold'; this.timer = 0.55; }
+    } else if (this.state === 'hold') {
+      if (this.timer <= 0) { this.state = 'back'; }
+    } else {
+      this.ext = Math.max(0, this.ext - dt * 2.4);
+      if (this.ext <= 0) { this.state = 'hide'; this.timer = 1.2; }
+    }
+    if (this.ext > 0.1) this.checkPlayer(game);
+  }
+  draw(ctx) { Gfx.moray(ctx, this); }
+}
+
+// Interruptor de concha: abre o portão de coral com o mesmo id quando a Avelã lhe dá com o dash (ou com o pião).
+class ShellSwitch extends Ent {
+  constructor(d) { super(d); this.isSwitch = true; this.hold = 0; this.flash = 0; }
+  get pressed() { return this.hold > 0; }
+  box() { return { x: this.x, y: this.y, hw: 11, hh: 11 }; }
+  update(dt, game) {
+    if (this.hold > 0) this.hold -= dt;
+    if (this.flash > 0) this.flash -= dt;
+    const p = game.player;
+    if (this.hold <= 0 && (p.dashT > 0 || p.spinT > 0) && this.touching(game)) {
+      this.hold = 0.45; this.flash = 0.6; Sound.sfx('select'); Sound.sfx('smash'); game.sparkle(this.x, this.y, '#fff3a0');
+      if (p.dashT > 0) { p.dashT = 0; p.vx = -p.dashDX * 120; p.vy = -p.dashDY * 120; }   // ressalta
+    }
+  }
+  draw(ctx) { Gfx.shellSwitch(ctx, this); }
+}
+
+// Anémona: pica como os ouriços; os tentáculos ondulam
+class Anemone extends Bramble {
+  box() { return { x: this.x, y: this.y - 6, hw: 8, hh: 6 }; }
+  draw(ctx) { Gfx.anemone(ctx, this); }
+}
+
+Object.assign(ENTITY_TYPES, { ring: BubbleRing, moray: Moray, shellswitch: ShellSwitch, anemone: Anemone });
+
+Object.assign(Gfx, {
+  bubbleRing(ctx, e) {
+    const used = e.gone > 0, n = 12, a0 = e.t * 1.6;
+    ctx.save(); ctx.globalAlpha = used ? 0.18 : 0.9;
+    for (let i = 0; i < n; i++) {
+      const a = a0 + i / n * Math.PI * 2, x = e.x + Math.cos(a) * e.r, y = e.y + Math.sin(a) * e.r * 1.1;
+      ctx.fillStyle = i % 3 ? 'rgba(200,240,255,0.9)' : '#ffffff'; ctx.beginPath(); ctx.arc(Math.round(x), Math.round(y), i % 2 ? 1.6 : 2.2, 0, 7); ctx.fill();
+    }
+    if (!used) { ctx.strokeStyle = `rgba(255,230,120,${(0.35 + 0.25 * Math.sin(e.t * 6)).toFixed(2)})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(e.x, e.y, e.r - 3, (e.r - 3) * 1.1, 0, 0, 7); ctx.stroke(); }
+    ctx.restore();
+  },
+  moray(ctx, e) {
+    const x = Math.round(e.x), y = Math.round(e.y), L = e.ext * e.reach;
+    ctx.save(); ctx.translate(x, y); ctx.scale(e.dir, 1);
+    ctx.fillStyle = '#1a1210'; ctx.beginPath(); ctx.ellipse(2, 0, 6, 8, 0, 0, 7); ctx.fill();          // buraco
+    if (L > 1) {
+      for (let s = 0; s <= L; s += 3) { const yy = Math.sin(s * 0.25 - e.t * 10) * 2; ell(ctx, 4 + s, yy, 5, 4.5, s % 6 ? '#6a8a2a' : '#7a9a32'); }   // corpo
+      for (let s = 0; s <= L; s += 6) { ctx.fillStyle = '#4a6a1a'; ctx.fillRect(4 + s, Math.round(Math.sin(s * 0.25 - e.t * 10) * 2) - 1, 2, 2); }
+    }
+    const hx = 6 + L, hy = L > 1 ? Math.sin(L * 0.25 - e.t * 10) * 2 : 0, open = e.state === 'out' || e.state === 'hold';
+    ell(ctx, hx, hy, 6.5, 5, '#7a9a32'); ell(ctx, hx + 2, hy + 2, 4, 2, '#c8d88a');
+    if (open) { poly(ctx, [[hx + 2, hy], [hx + 9, hy - 3], [hx + 9, hy + 4]], '#3a0a10'); ctx.fillStyle = '#ffffff'; ctx.fillRect(hx + 5, hy - 2, 1, 2); ctx.fillRect(hx + 7, hy + 2, 1, 2); }
+    ctx.fillStyle = '#fff04a'; ctx.fillRect(Math.round(hx) + 1, Math.round(hy) - 3, 2, 2); ctx.fillStyle = '#1a1020'; ctx.fillRect(Math.round(hx) + 2, Math.round(hy) - 3, 1, 1);
+    Gfx.ctlLight(ctx, e, hx - 2, hy - 6);
+    ctx.restore();
+  },
+  shellSwitch(ctx, e) {
+    const x = Math.round(e.x), y = Math.round(e.y), on = e.hold > 0 || e.flash > 0;
+    if (on) { ctx.fillStyle = 'rgba(255,240,150,0.35)'; ctx.beginPath(); ctx.arc(x, y, 16, 0, 7); ctx.fill(); }
+    ctx.fillStyle = on ? '#ffd8a0' : '#f0a070';
+    ctx.beginPath(); ctx.moveTo(x, y + 9); ctx.arc(x, y + 2, 11, Math.PI * 1.05, Math.PI * 1.95); ctx.closePath(); ctx.fill();   // leque da vieira
+    ctx.strokeStyle = on ? '#fff4c8' : '#c06a40'; ctx.lineWidth = 1;
+    for (let k = -3; k <= 3; k++) { ctx.beginPath(); ctx.moveTo(x, y + 9); ctx.lineTo(x + k * 3.4, y - 8 + Math.abs(k) * 1.2); ctx.stroke(); }
+    ctx.fillStyle = on ? '#ffe8b0' : '#d08050'; ctx.fillRect(x - 4, y + 7, 8, 3);
+    if (on) { ctx.fillStyle = '#ffffff'; ctx.fillRect(x - 1, y - 2, 2, 2); }
+  },
+  anemone(ctx, e) {
+    const x = Math.round(e.x), y = Math.round(e.y);
+    ell(ctx, x, y - 2, 6, 3, '#a03a7a');
+    for (let k = -3; k <= 3; k++) {
+      const a = Math.sin(e.t * 2.2 + k) * 0.35, len = 8 + (k % 2 ? 2 : 0);
+      ctx.strokeStyle = k % 2 ? '#ff7ac8' : '#ffa8e0'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x + k * 1.6, y - 3); ctx.quadraticCurveTo(x + k * 2.4 + a * 6, y - 3 - len * 0.6, x + k * 3 + a * 8, y - 3 - len); ctx.stroke();
+      ctx.fillStyle = '#fff0fa'; ctx.fillRect(Math.round(x + k * 3 + a * 8) - 1, Math.round(y - 3 - len) - 1, 2, 2);
+    }
+    ctx.lineWidth = 1;
+  },
+});

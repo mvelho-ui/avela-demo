@@ -59,7 +59,7 @@ const Gfx = {
     }
     const SOIL = ['#a0612b', '#93572a', '#844d26', '#734322', '#683d20', '#5e381e'];
     const open = ch => !(SOLID[ch] || SLOPE[ch]);
-    this.mine = !!L.underground; this.beach = L.season === 'beach'; this.desert = L.season === 'desert' || this.beach; this.jungle = L.season === 'jungle';
+    this.mine = !!L.underground; this.beach = L.season === 'beach'; this.reef = !!L.reef; this.desert = L.season === 'desert' || this.beach; this.jungle = L.season === 'jungle';
     const SAND = this.beach ? ['#f8dc98', '#f0d088', '#e6c27a', '#d8b06a', '#c49c5c', '#ae8850']   // areia da praia, mais clara
       : ['#f0c870', '#e6b85e', '#d9a650', '#c99245', '#b47e3c', '#9c6a34'];
     if (this.desert) SOIL.splice(0, SOIL.length, ...SAND);
@@ -72,7 +72,8 @@ const Gfx = {
       else if (ch === 'E') { this.cave(g, px, py, tx, ty); this.ladder(g, L, px, py, tx, ty); }
       else if (ch === 'P' && L.season === 'jungle') this.hatch(g, L, px, py, tx, ty);
       else if (ch === 'P' && this.beach) this.plank(g, L, px, py, tx, ty);
-      else if (ch === 'W' && L.seaFrom !== undefined && tx >= L.seaFrom) { /* mar: transparente, vê-se o fundo do mar */ }
+      else if ((ch === 'W' || ch === 'D' || ch === 'd') && L.seaFrom !== undefined && tx >= L.seaFrom) { /* mar: transparente, vê-se o fundo do mar (o portão de coral desenha-se sozinho) */ }
+      else if (ch === 'F' && L.seaFrom !== undefined && tx >= L.seaFrom) { /* coral rachado: desenha-se por cima (Gfx.fragile); atrás é mar */ }
       else if (ch === 'P') { this.cave(g, px, py, tx, ty); this.plank(g, L, px, py, tx, ty); }
       else if (ch === 'V' || L.lava.has(L.idx(tx, ty))) { g.fillStyle = '#2a0e06'; g.fillRect(px, py, T, T); }   // poço da lava (a lava anima-se em cima)
       else if (ch === 'U' || ch === 'D' || ch === 'd') this.ruinWall(g, px, py, tx, ty);
@@ -236,7 +237,8 @@ const Gfx = {
     const o = (dx, dy) => !SOLID[L.get(tx + dx, ty + dy)];
     const u = o(0, -1), l = o(-1, 0), r = o(1, 0), d = o(0, 1);
     g.save(); g.beginPath(); g.roundRect(px, py, T, T, [u && l ? 7 : 0, u && r ? 7 : 0, d && r ? 4 : 0, d && l ? 4 : 0]); g.clip();
-    const C = this.desert && !this.beach ? ['#c98a5a', '#e0a878', '#f0c090', '#d89a68', '#a86a40', '#8a5030', '#b07848', '#e8b088', '#8a5030']
+    const C = this.reef ? ['#7a5a8a', '#9a78aa', '#c0a0d0', '#8e6c9e', '#5a3e6a', '#4a3058', '#6a4c7a', '#a888b8', '#4a3058']   // rocha do recife
+      : this.desert && !this.beach ? ['#c98a5a', '#e0a878', '#f0c090', '#d89a68', '#a86a40', '#8a5030', '#b07848', '#e8b088', '#8a5030']
       : ['#8d919c', '#a9adb7', '#c4c8d0', '#a3a7b1', '#6a6e79', '#5f636e', '#7b7f8a', '#a0a4ae', '#5a5e69'];
     g.fillStyle = C[0]; g.fillRect(px, py, T, T);
     if (u) { g.fillStyle = C[1]; g.fillRect(px, py, T, 5); g.fillStyle = C[2]; g.fillRect(px + (l ? 4 : 0), py + 1, T - (l ? 4 : 0) - (r ? 4 : 0), 1); }
@@ -298,6 +300,15 @@ const Gfx = {
     for (const f of L.fragile) {
       const x = f.tx * T, y = f.ty * T;
       if (x < cx - T || x > cx + VIEW_W || y < cy - T || y > cy + VIEW_H) continue;
+      if (L.reef) {                                                       // coral rachado (5-2): só o dash o parte
+        ctx.fillStyle = '#e06a8a'; ctx.fillRect(x, y, T, T); ctx.fillStyle = '#ff9ab4'; ctx.fillRect(x + 1, y + 1, T - 2, 3);
+        ctx.fillStyle = '#a83a5a'; ctx.fillRect(x, y + T - 1, T, 1); ctx.fillRect(x + T - 1, y, 1, T);
+        ctx.fillStyle = '#ffd0dc'; ctx.fillRect(x + 3 + (f.tx % 3) * 3, y + 6, 2, 2); ctx.fillRect(x + 10, y + 11 - (f.ty % 2) * 4, 2, 2);
+        ctx.fillStyle = '#5a1428'; const k2 = (f.tx * 7 + f.ty * 3) % 4;
+        for (let i = 0; i < 8; i++) ctx.fillRect(x + 3 + ((i + k2) % 3) + Math.floor(i / 2), y + 1 + i * 2, 1, 2);
+        ctx.fillRect(x + 9, y + 5, 4, 1); ctx.fillRect(x + 12, y + 6, 1, 4);
+        continue;
+      }
       const J = L.season === 'jungle';                                    // na selva: pedra cinzenta com musgo
       ctx.fillStyle = J ? '#7a7e78' : '#a8703f'; ctx.fillRect(x, y, T, T);
       ctx.fillStyle = J ? '#9aa098' : '#c98a58'; ctx.fillRect(x + 1, y + 1, T - 2, 2);

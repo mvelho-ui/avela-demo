@@ -142,7 +142,7 @@ class Gate extends Ent {
   onRespawn(game) { this.open = 0; this.apply(game.level, game.player, true); }
   update(dt, game) {
     const L = game.level, p = game.player;
-    const plate = this.plate || (this.plate = game.ents.find(e => e instanceof Plate && e.id === this.id));
+    const plate = this.plate || (this.plate = game.ents.find(e => (e instanceof Plate || e.isSwitch) && e.id === this.id));   // placa (4-3) ou concha (5-2)
     if (plate && plate.pressed) this.open = Math.min(1, this.open + dt * 4);
     else if (this.open > 0) {
       this.open = Math.max(0, this.open - dt / this.closeT);
@@ -417,6 +417,13 @@ Object.assign(Gfx, {
   gate(ctx, e) {
     const x = Math.floor(e.x / T) * T, top = e.ty0 * T, h = e.h * T, bottom = top + h * (1 - e.open);
     if (bottom <= top + 1) return;
+    if (e.style === 'coral') {                                       // portão de coral do recife (5-2)
+      ctx.fillStyle = '#c84a6a'; ctx.fillRect(x + 1, top, 14, bottom - top);
+      ctx.fillStyle = '#ff7a9a'; ctx.fillRect(x + 2, top, 3, bottom - top);
+      ctx.fillStyle = '#8a2a4a'; for (let yy = top + 6; yy < bottom - 2; yy += 10) { ctx.fillRect(x + 1, yy, 14, 1); ctx.fillRect(x + 6 + (yy % 3), yy + 3, 2, 2); }
+      ctx.fillStyle = '#ffd8e8'; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(x + 4 + k * 4, bottom, 2, 0, 7); ctx.fill(); }
+      return;
+    }
     ctx.fillStyle = '#5a6458'; ctx.fillRect(x + 1, top, 14, bottom - top);
     ctx.fillStyle = '#7a8478'; ctx.fillRect(x + 1, top, 3, bottom - top);
     ctx.fillStyle = '#3a4238'; for (let yy = top + 8; yy < bottom - 2; yy += 12) ctx.fillRect(x + 1, yy, 14, 1);

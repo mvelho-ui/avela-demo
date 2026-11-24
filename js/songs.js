@@ -701,6 +701,42 @@ const SONGS = {
   },
 
   // ------------------------------------------------------------------
+  reef: {
+    name: 'RECIFE DE CORAL', bpm: 116, transpose: 0, loop: 2,
+    chords: `| Bbmaj7 | Gm7 |
+             | Bbmaj7 | Gm7 | Cm7 | F7 | Dm7 | Gm7 | Cm7 F7 | Bb |
+             | Ebmaj7 | Dm7 | Cm7 | F | Ebmaj7 | Dm7 | Gm7 C7 | F7 |`,
+    lead: [
+      'D5 . F5 . A5 . D6 . C6 . A5 . F5 - - -',
+      'G5 . Bb5 . D6 . F6 . D6 - Bb5 - G5 - - -',
+      // A
+      'F5 - - D5 - - F5 - A5 - - - Bb5 - C6 -',
+      'D6 - - - Bb5 - - - G5 - - - F5 - G5 -',
+      'Eb6 - - - C6 - - - G5 - Bb5 - C6 - Eb6 -',
+      'D6 - - - C6 - A5 - F5 - - - A5 - C6 -',
+      'F6 - - - D6 - - - A5 - - - C6 - D6 -',
+      'Bb5 - - - D6 - - - F6 - - - D6 - Bb5 -',
+      'C6 - - Eb6 - - G6 - F6 - - Eb6 - - C6 -',
+      'D6 - - - - - - - . . F5 - G5 - A5 -',
+      // B
+      'Bb5 - - G5 - - Eb5 - G5 - - - Bb5 - D6 -',
+      'C6 - - - A5 - - - F5 - - - A5 - C6 -',
+      'Eb6 - - - - - D6 - C6 - - - G5 - - -',
+      'A5 - - - C6 - - - F6 - - - C6 - A5 -',
+      'G6 - - - F6 - Eb6 - D6 - - - Bb5 - - -',
+      'A5 - - - C6 - - - F6 - - - A6 - - -',
+      'G6 - - - F6 - D6 - E6 - - - G6 - - -',
+      'F6 - - - Eb6 - - - C6 - - - A5 - - -',
+    ],
+    bass: 'intro introA  ostin*7 ostinA  walk*7 walkA',
+    drum: 'half intro  caveC cave*6 caveF  crash main main2 main main2 main main2 fillT',
+    stab: 'none*2  skank*16',
+    pad:  'auto*18',
+    arp:  'none*2  sparkle*8  up*8',
+    patches: { lead: 'mallet' },
+  },
+
+  // ------------------------------------------------------------------
   boss: {
     name: 'BARÃO GRALHA', bpm: 160, transpose: 0, loop: 0,
     chords: '| Am | Am | F | E7 | Am | Am | Bb | E7 |',
@@ -756,5 +792,5 @@ const SONGS = {
 };
 
 // Ordem do "Teste de Som"
-const TRACKLIST = ['title', 'zone1', 'zone2', 'zone3', 'boss', 'mine1', 'mine2', 'mine3', 'boss2', 'desert1', 'desert2', 'ruins', 'desert3', 'boss3', 'jungle1', 'jungle2', 'temple', 'boss4', 'beach1', 'sea1', 'clear', 'life', 'gameover'];
+const TRACKLIST = ['title', 'zone1', 'zone2', 'zone3', 'boss', 'mine1', 'mine2', 'mine3', 'boss2', 'desert1', 'desert2', 'ruins', 'desert3', 'boss3', 'jungle1', 'jungle2', 'temple', 'boss4', 'beach1', 'sea1', 'reef', 'clear', 'life', 'gameover'];
 if (DEMO) TRACKLIST.splice(0, TRACKLIST.length, 'title', 'zone1', 'zone2', 'zone3', 'boss', 'clear', 'life', 'gameover');   // demo: só as músicas do Bosque

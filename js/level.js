@@ -1810,6 +1810,9 @@ function beachDecorate(L, seed, S) {
   const free = x => !busy.some(([a, b]) => x > a && x < b);
   for (let tx = 1; tx < L.cols - 1; tx++) {
     let ty = 0; while (ty < L.rows && !(L.get(tx, ty) === '#' && (L.get(tx, ty - 1) === '.' || L.get(tx, ty - 1) === 'W'))) ty++;
+    if (L.reef) for (let ry = 1; ry < L.rows; ry++) {                    // recife: também os chãos de rocha das grutas
+      if (ry !== ty && (L.get(tx, ry) === 'R') && L.get(tx, ry - 1) === 'W' && rnd() < 0.18) L.decos.push({ type: rnd() < 0.6 ? 'coral' : 'seagrass', x: tx * T + T / 2, y: ry * T, seed: Math.floor(rnd() * 1e6) });
+    }
     if (ty >= L.rows) continue;
     const x = tx * T + T / 2, y = ty * T, seedN = Math.floor(rnd() * 1e6), r = rnd();
     if (!free(x)) continue;
@@ -1818,7 +1821,125 @@ function beachDecorate(L, seed, S) {
   }
 }
 
-const LEVELS = [buildLevel1, buildLevel2, buildLevel3, buildLevel4, buildLevel5, buildLevel6, buildLevel7, buildLevel8, buildLevel9, buildLevel10, buildLevel11, buildLevel12, buildLevel13];
+// =====================================================================
+//  NÍVEL 5-2 — RECIFE DE CORAL (Reino da Praia)
+//  Todo debaixo de água, feito para o dash (C): coral rachado que só o dash parte, anéis de bolhas que
+//  recarregam o dash (encadear dashes), corredor contra a corrente, interruptor de concha que abre um portão
+//  de coral por pouco tempo, poço das moreias, a cidade afundada dos esquilos antigos, corrente a favor com
+//  um túnel escondido por cima e o jardim das anémonas.
+// =====================================================================
+function buildLevel14() {
+  const L = new Level(430, 56);
+  L.name = 'RECIFE DE CORAL'; L.code = '5-2'; L.realm = 'REINO DA PRAIA'; L.teaser = '5-3 A FOSSA ABISSAL';
+  L.music = 'reef'; L.season = 'beach'; L.reef = true; L.sky = ['#1a5a9a', '#2a7ac0', '#3a8ad0'];
+  L.deepWater = true; L.current = 0; L.tank = true; L.lights = []; L.waterfalls = [];
+  L.seaY = 0; L.seaFrom = 0; L.seaDark = 0.22;
+  const X = tx => tx * T + T / 2, Y = ty => ty * T;
+  L.bgRefY = Y(40) - VIEW_H;
+  const fill = (x0, x1, y0, y1, ch) => { for (let tx = x0; tx <= x1; tx++) for (let ty = y0; ty <= y1; ty++) L.set(tx, ty, ch); };
+  const carve = (x0, x1, y0, y1) => fill(x0, x1, y0, y1, '.');
+  const sand = (x0, x1, row) => fill(x0, x1, row, row + 2, '#');
+  const airs = [];                                                         // bolsas de ar (não se enchem de água)
+  const air = (x0, x1, y0, y1) => airs.push([x0, x1, y0, y1]);
+  const crack = (x0, x1, y0, y1) => { for (let tx = x0; tx <= x1; tx++) for (let ty = y0; ty <= y1; ty++) { L.addFragile(tx, ty, 'W'); L.water.add(L.idx(tx, ty)); } };
+  const acornRow = (a, b, y, step = 1) => { for (let tx = a; tx <= b; tx += step) L.add('acorn', X(tx), y); };
+  const kelp = (tx, row, h) => L.add('kelp', X(tx), Y(row), { h });
+  const ring = (tx, row) => L.add('ring', X(tx), Y(row) + 8);
+  const statue = (tx, row) => L.decos.push({ type: 'statue', x: X(tx), y: Y(row), seed: tx, moss: true });
+
+  fill(0, L.cols - 1, 0, L.rows - 1, 'R');                                  // tudo rocha; abrem-se as zonas de água
+
+  // A — jardim de coral: alforrecas num corredor estreito (dash!) e a primeira parede de coral rachado
+  carve(0, 48, 10, 45); sand(0, 48, 46);
+  L.start = { x: X(4), y: Y(30) };
+  fill(16, 27, 10, 27, 'R'); fill(16, 27, 36, 45, 'R');                    // passagem estreita: linhas 28..35
+  L.add('jelly', X(19), Y(31), { range: 5 }); L.add('jelly', X(22), Y(30), { range: 9 }); L.add('jelly', X(25), Y(32), { range: 5 });
+  fill(36, 37, 10, 31, 'R'); crack(36, 37, 32, 45);                        // parede: só se passa a partir o coral
+  L.add('vent', X(10), Y(46));
+  for (const [tx, h] of [[6, 70], [12, 50], [31, 90], [33, 60], [44, 80]]) kelp(tx, 46, h);
+  acornRow(6, 13, Y(40)); acornRow(17, 26, Y(31) + 4, 3); acornRow(39, 45, Y(40));
+  L.add('check', X(44), Y(46));
+  // B — corredor dos anéis, contra a corrente (a nadar não se passa; com dashes encadeados sim)
+  carve(49, 118, 25, 32);
+  carve(68, 71, 18, 24); air(68, 71, 18, 19); carve(92, 95, 18, 24); air(92, 95, 18, 19);   // nichos para descansar (com ar)
+  L.currents = [{ x0: X(49) - 8, x1: X(118) + 8, y0: Y(25), y1: Y(33), vx: -200 }];
+  for (const tx of [53, 58, 63, 75, 80, 85, 99, 104, 109, 114]) ring(tx, 28);
+  acornRow(55, 60, Y(29), 5); acornRow(77, 82, Y(29), 5); acornRow(101, 111, Y(29), 5);
+  L.add('check', X(69), Y(24));
+  // C — câmara do portão: dash na concha e corrida de anéis até ao portão antes que feche
+  carve(119, 171, 14, 45); sand(119, 171, 46);
+  L.add('shellswitch', X(122), Y(45) - 4, { id: 2 });
+  carve(119, 124, 11, 13); air(119, 124, 11, 12);                          // bolsa de ar junto à concha (respirar antes de tentar o portão)
+  fill(172, 172, 14, 35, 'R');
+  for (let ty = 36; ty <= 45; ty++) { L.set(172, ty, 'D'); L.water.add(L.idx(172, ty)); }
+  L.add('gate', X(172), 0, { id: 2, ty0: 36, h: 10, closeT: 4.5, style: 'coral' });
+  for (const tx of [128, 134, 140, 146, 152, 158, 164, 169]) ring(tx, 40);
+  carve(150, 156, 8, 12); air(150, 156, 8, 9); crack(150, 156, 13, 13);   // nicho escondido por cima (avelã dourada 1)
+  L.add('golden', X(153), Y(11), { idx: 0 }); acornRow(151, 155, Y(12) - 2, 2);
+  L.add('vent', X(140), Y(46));
+  for (const [tx, h] of [[124, 60], [136, 80], [160, 70]]) kelp(tx, 46, h);
+  acornRow(130, 166, Y(44), 6);
+  L.add('check', X(125), Y(46));
+  // D — o poço das moreias (sobe-se até à bolsa de ar lá em cima)
+  carve(173, 179, 36, 45);
+  carve(180, 194, 8, 50); air(180, 194, 8, 9); sand(180, 194, 51);
+  for (const ty of [16, 26]) L.add('moray', 180 * T - 2, Y(ty) + 8, { dir: 1 });
+  for (const ty of [20, 31, 44]) L.add('moray', 195 * T + 2, Y(ty) + 8, { dir: -1 });
+  L.add('vent', X(187), Y(51));
+  for (let ty = 13; ty <= 47; ty += 3) L.add('acorn', X(187), Y(ty));
+  carve(195, 205, 10, 14);
+  L.add('check', X(198), Y(15));
+  // E — a cidade afundada dos esquilos antigos
+  carve(206, 275, 10, 47); sand(206, 275, 48);
+  carve(238, 252, 8, 9); air(238, 252, 8, 10);                             // bolha de ar presa no tecto das ruínas
+  fill(214, 214, 36, 47, 'Z'); fill(222, 222, 30, 47, 'Z'); fill(230, 230, 40, 47, 'Z'); fill(262, 262, 34, 47, 'Z'); fill(270, 270, 38, 47, 'Z');
+  fill(240, 247, 36, 37, 'Z'); fill(247, 247, 38, 47, 'Z'); crack(240, 240, 38, 47);   // casa com porta de coral rachado
+  L.add('golden', X(244), Y(44), { idx: 1 }); acornRow(242, 245, Y(41));
+  statue(218, 48); statue(252, 48);
+  L.decos.push({ type: 'arch', x0: X(225), x1: X(236), top: Y(36), floor: Y(48), seed: 9, moss: true });
+  L.add('puffer', X(235), Y(28), { x0: X(228), x1: X(244) }); L.add('puffer', X(258), Y(24), { x0: X(250), x1: X(266) });
+  L.add('crab', X(253), Y(48), { x0: X(249), x1: X(260) });
+  L.add('jelly', X(214), Y(24), { range: 28 }); L.add('jelly', X(267), Y(22), { range: 24 });
+  L.add('clam', X(256), Y(48));
+  L.add('vent', X(226), Y(48)); L.add('vent', X(266), Y(48));
+  for (const [tx, h] of [[209, 80], [236, 70], [248, 60], [273, 90]]) kelp(tx, 48, h);
+  acornRow(208, 212, Y(14)); acornRow(215, 221, Y(34), 2); acornRow(263, 269, Y(32), 2);
+  L.add('check', X(250), Y(48));
+  // F — corrente a favor, com um túnel escondido por cima (dash para cima na altura certa)
+  carve(276, 345, 30, 35);
+  L.currents.push({ x0: X(276) - 8, x1: X(345) + 8, y0: Y(30), y1: Y(36), vx: 260 });
+  carve(286, 334, 18, 21); air(286, 334, 18, 18);
+  carve(288, 290, 22, 29); carve(330, 332, 22, 29);
+  ring(289, 32);
+  L.add('golden', X(310), Y(20), { idx: 2 }); acornRow(292, 328, Y(20) + 4, 3);
+  for (const tx of [300, 318]) L.add('urchin', X(tx), Y(36));
+  for (const tx of [309, 327]) L.add('urchin', X(tx), Y(30), { down: true });
+  for (const tx of [296, 304, 314, 322, 338]) ring(tx, 32);
+  // G — jardim das anémonas e a meta, num arco dos esquilos antigos
+  carve(346, 425, 12, 47); sand(346, 425, 48);
+  carve(394, 406, 10, 11); air(394, 406, 10, 12);                          // bolha de ar no tecto do jardim
+  L.add('check', X(350), Y(48));
+  fill(356, 360, 38, 47, 'R'); fill(372, 377, 30, 47, 'R'); fill(390, 394, 36, 47, 'R');
+  for (const [tx, ty] of [[357, 38], [359, 38], [373, 30], [376, 30], [391, 36], [393, 36], [364, 48], [366, 48], [382, 48], [384, 48], [398, 48]]) L.add('anemone', X(tx), Y(ty));
+  L.add('jelly', X(380), Y(24), { range: 14 }); L.add('jelly', X(384), Y(20), { range: 10 }); L.add('jelly', X(388), Y(26), { range: 12 });
+  L.add('vent', X(368), Y(48));
+  for (const [tx, h] of [[352, 70], [369, 90], [386, 60], [402, 80]]) kelp(tx, 48, h);
+  acornRow(361, 370, Y(34), 3); acornRow(378, 388, Y(16), 2); acornRow(400, 408, Y(44));
+  L.decos.push({ type: 'arch', x0: X(408), x1: X(420), top: Y(34), floor: Y(48), seed: 10, moss: true });
+  statue(406, 48); statue(422, 48);
+  L.add('goal', X(414), Y(48));
+
+  // água em tudo o que está aberto (menos as bolsas de ar)
+  for (let tx = 0; tx < L.cols; tx++) for (let ty = 0; ty < L.rows; ty++) {
+    if (L.get(tx, ty) !== '.') continue;
+    if (airs.some(([x0, x1, y0, y1]) => tx >= x0 && tx <= x1 && ty >= y0 && ty <= y1)) continue;
+    L.addWater(tx, ty);
+  }
+  beachDecorate(L, 5252, -10);
+  return L;
+}
+
+const LEVELS = [buildLevel1, buildLevel2, buildLevel3, buildLevel4, buildLevel5, buildLevel6, buildLevel7, buildLevel8, buildLevel9, buildLevel10, buildLevel11, buildLevel12, buildLevel13, buildLevel14];
 if (DEMO) LEVELS.length = 3;                                       // demo: só o Reino do Bosque
 
 // =====================================================================

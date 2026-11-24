@@ -74,6 +74,7 @@ const Sound = (() => {
       case 'sink': noise(0.4, 0.12, 260, 'lowpass'); tone(140, 70, 0.3, 'triangle', 0.06); break;
       case 'rev': tone(260, 820, 0.14, 'sawtooth', 0.06); noise(0.12, 0.06, 3200); break;
       case 'grab': tone(500, 700, 0.06, 'triangle', 0.1); noise(0.05, 0.05, 2000); break;
+      case 'ring': tone(880, 1320, 0.08, 'triangle', 0.07); tone(1320, 1760, 0.08, 'triangle', 0.05, 0.05); break;
       case 'boing': tone(260, 620, 0.12, 'triangle', 0.12); tone(520, 900, 0.08, 'sine', 0.05, 0.03); break;
       case 'dart': tone(900, 1800, 0.05, 'square', 0.05); noise(0.08, 0.08, 3000); break;
       case 'rumble': noise(0.3, 0.16, 90, 'lowpass'); tone(55, 40, 0.25, 'triangle', 0.1); break;

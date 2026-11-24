@@ -218,6 +218,12 @@ const Game = {
       const ax = p.x + Math.sign(p.vx) * (PLAYER_HW + 2 + Math.abs(p.vx) * dt);
       for (const dy of [4, 12, 20]) { const tx = Math.floor(ax / T), ty = Math.floor((p.y - dy) / T); if (L.get(tx, ty) === 'F') this.smashWall(tx, ty); }
     }
+    if (L.fragile.length && p.dashT > 0) {                                          // o dash debaixo de água parte o coral rachado
+      for (const oy of [4, 11, 18]) {
+        const tx = Math.floor((p.x + p.dashDX * (PLAYER_HW + 5)) / T), ty = Math.floor((p.y - oy + p.dashDY * 14) / T);
+        if (L.get(tx, ty) === 'F') this.smashWall(tx, ty);
+      }
+    }
     if (this.ride) this.updateRide(dt); else p.update(dt, I, this);
     if (L.lavaTiles.length && p.state === 'normal' && L.isLava(p.x, p.y - 2)) this.burn(p);
     if (L.quickTiles.length && p.state === 'normal' && !this.ride) {           // areia movediça: prende, afunda e morde
@@ -368,7 +374,7 @@ const Game = {
       if (i < 0) continue;
       const f = L.fragile.splice(i, 1)[0]; L.set(x, y, f.bg);
       for (let k = 0; k < 5; k++) this.parts.push(new Particle({ x: x * T + Math.random() * T, y: y * T + Math.random() * T, vx: (Math.random() - 0.3) * 200 * Math.sign(this.player.vx || 1),
-        vy: -80 - Math.random() * 140, grav: 600, life: 0.8, size: 2 + (k % 2), color: k % 2 ? '#a8703f' : '#6a4024' }));
+        vy: -80 - Math.random() * 140, grav: 600, life: 0.8, size: 2 + (k % 2), color: L.reef ? (k % 2 ? '#ff9ab4' : '#c84a6a') : k % 2 ? '#a8703f' : '#6a4024' }));
       q.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
     }
     this.flash = 0.12; Sound.sfx('smash');
